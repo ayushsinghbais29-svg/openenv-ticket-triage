@@ -1,0 +1,220 @@
+name: openenv-ticket-triage
+version: "1.0.0"
+description: "Customer Support Ticket Triage Environment for Meta OpenEnv Hackathon 2026"
+author: "ayushsinghbais29-svg"
+license: MIT
+tags:
+  - openenv
+  - ticket-triage
+  - customer-support
+  - nlp
+  - classification
+  - rl-environment
+
+environment:
+  name: TicketTriageEnv
+  module: src.environment
+  class: TicketTriageEnv
+
+  reset:
+    description: "Generate a batch of tickets and return initial observation"
+    returns: Observation
+
+  step:
+    description: "Execute an action and return next state"
+    input: Action
+    returns:
+      - Observation
+      - Reward
+      - done (bool)
+      - truncated (bool)
+      - info (dict)
+
+  state:
+    description: "Return complete environment state"
+    returns: EnvironmentState
+
+observation_space:
+  type: dict
+  fields:
+    ticket_id:
+      type: string
+      description: "Unique ticket identifier (e.g. TKT-0001)"
+    subject:
+      type: string
+      description: "One-line summary of the customer issue"
+    description:
+      type: string
+      description: "Full description of the customer issue"
+    sentiment:
+      type: float
+      range: [-1.0, 1.0]
+      description: "Ticket sentiment (-1=very negative, +1=very positive)"
+    customer_tier:
+      type: string
+      enum: [free, premium, enterprise]
+      description: "Customer subscription tier"
+    wait_time_seconds:
+      type: integer
+      range: [0, 3600]
+      description: "How long the ticket has been waiting for response"
+    task_type:
+      type: string
+      enum: [classification, priority_classification, efficiency_triage]
+    step:
+      type: integer
+      description: "Current step in the episode"
+    max_steps:
+      type: integer
+      description: "Maximum allowed steps for the episode"
+    read_count:
+      type: integer
+      description: "Number of times current ticket has been read"
+    tickets_remaining:
+      type: integer
+      description: "Number of tickets left to process"
+    tickets_processed:
+      type: integer
+      description: "Number of tickets already processed"
+    current_score:
+      type: float
+      description: "Cumulative reward so far"
+    available_actions:
+      type: array
+      items: string
+      description: "List of valid actions for current task"
+
+action_space:
+  type: dict
+  fields:
+    action_type:
+      type: string
+      enum: [read, analyze, classify, set_priority, route]
+      required: true
+      description: >
+        read: Get full ticket content (dense reward +0.1)
+        analyze: Reason about ticket (dense reward +0.2)
+        classify: Assign department (triggers reward)
+        set_priority: Set priority level (triggers reward)
+        route: Route ticket to department and advance (triggers reward, advances episode)
+    department:
+      type: string
+      enum: [Billing, Technical, General, "Premium Support"]
+      required_for: [classify, route]
+      description: "Target department for routing"
+    priority:
+      type: string
+      enum: [Low, Medium, High, Critical]
+      required_for: [set_priority]
+      description: "Priority level for the ticket"
+    confidence:
+      type: float
+      range: [0.0, 1.0]
+      default: 1.0
+      description: "Agent confidence in this decision"
+    reasoning:
+      type: string
+      optional: true
+      description: "Optional chain-of-thought reasoning"
+
+reward_space:
+  type: dict
+  range: [-2.0, 2.0]
+  fields:
+    value:
+      type: float
+      range: [-2.0, 2.0]
+      description: "Scalar reward for this step"
+    components:
+      type: dict
+      fields:
+        correctness:
+          type: float
+          description: "Reward from correct routing/classification"
+        efficiency:
+          type: float
+          description: "Penalty for excessive steps (negative)"
+        progress:
+          type: float
+          description: "Dense reward for read/analyze actions"
+        penalties:
+          type: float
+          description: "Repetition and timeout penalties (negative)"
+    message:
+      type: string
+      description: "Human-readable explanation of reward"
+
+tasks:
+  - id: classification
+    name: "Department Classification"
+    difficulty: easy
+    description: "Route customer support tickets to the correct department"
+    n_tickets: 5
+    max_steps: 15
+    target_baseline: 0.85
+    grader: ClassificationGrader
+    metric: accuracy
+    available_actions: [read, analyze, classify, route]
+
+  - id: priority_classification
+    name: "Priority + Classification"
+    difficulty: medium
+    description: "Classify department AND determine priority level for each ticket"
+    n_tickets: 5
+    max_steps: 20
+    target_baseline: 0.75
+    grader: PriorityClassificationGrader
+    metric: f1_score
+    available_actions: [read, analyze, classify, set_priority, route]
+
+  - id: efficiency_triage
+    name: "Efficiency Triage"
+    difficulty: hard
+    description: "Route 10-ticket stream optimizing quality vs. latency"
+    n_tickets: 10
+    max_steps: 30
+    target_baseline: 0.65
+    grader: EfficiencyGrader
+    metric: composite_score
+    available_actions: [read, analyze, classify, set_priority, route]
+
+reward_shaping:
+  dense_rewards:
+    read: +0.1
+    analyze: +0.2
+  correctness_bonus:
+    department_correct: +0.8
+    priority_correct: +0.4
+    priority_adjacent: +0.2
+  penalties:
+    repetition: -0.2
+    timeout: -1.0
+    efficiency: -0.05_per_excess_ratio
+
+baseline:
+  model: gpt-4o-mini
+  seed: 42
+  n_episodes: 5
+  script: baseline/evaluate.py
+  expected_scores:
+    classification: 0.85
+    priority_classification: 0.75
+    efficiency_triage: 0.65
+
+deployment:
+  platform: huggingface_spaces
+  space_name: openenv-ticket-triage
+  framework: docker
+  port: 7860
+  endpoints:
+    - GET /health
+    - POST /reset/{task_type}
+    - POST /step/{task_type}
+    - GET /state/{task_type}
+    - GET /docs
+
+validation:
+  grader_score_range: [0.0, 1.0]
+  reward_range: [-2.0, 2.0]
+  deterministic: true
+  seed_reproducible: true

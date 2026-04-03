@@ -1,0 +1,165 @@
+name: Validate OpenEnv Environment
+
+on:
+  push:
+    branches: [main, "copilot/**"]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Run Unit Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: python -m pytest tests/ -v --tb=short
+
+  validate-openenv:
+    name: Validate OpenEnv Spec
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Validate openenv.yaml exists
+        run: test -f openenv.yaml && echo "openenv.yaml found"
+
+      - name: Validate environment import
+        run: python -c "from src.environment import TicketTriageEnv; print('Import OK')"
+
+      - name: Validate reset/step/state interface
+        run: |
+          python -c "
+          from src.environment import TicketTriageEnv
+          for task in ['classification', 'priority_classification', 'efficiency_triage']:
+              env = TicketTriageEnv(task_type=task, seed=42)
+              obs = env.reset()
+              assert 'ticket_id' in obs, f'reset() missing ticket_id for {task}'
+              obs, reward, done, truncated, info = env.step({'action_type': 'read'})
+              assert 'value' in reward, f'step() reward missing value for {task}'
+              state = env.state()
+              assert 'step' in state, f'state() missing step for {task}'
+          print('All task interfaces validated OK')
+          "
+
+      - name: Validate graders produce varying scores
+        run: |
+          python -c "
+          from src.graders import ClassificationGrader, PriorityClassificationGrader, EfficiencyGrader, get_grader
+          from src.tasks import TicketGenerator
+          from src.models import Action, ActionTypeEnum, DepartmentEnum
+
+          gen = TicketGenerator(seed=42)
+
+          # Test ClassificationGrader
+          grader = ClassificationGrader()
+          tickets = gen.generate_episode(5)
+          correct = [Action(action_type=ActionTypeEnum.ROUTE, department=t.correct_department, confidence=0.9) for t in tickets]
+          wrong = [Action(action_type=ActionTypeEnum.ROUTE, department=DepartmentEnum.GENERAL, confidence=0.9) for _ in tickets]
+          s1 = grader.grade_episode(correct, tickets, 5, 15)
+          s2 = grader.grade_episode(wrong, tickets, 5, 15)
+          assert s1 != s2, 'ClassificationGrader returns constant scores!'
+          assert 0.0 <= s1 <= 1.0 and 0.0 <= s2 <= 1.0, 'Scores out of range!'
+
+          # Test EfficiencyGrader
+          grader2 = EfficiencyGrader()
+          tickets2 = gen.generate_episode(10)
+          correct2 = [Action(action_type=ActionTypeEnum.ROUTE, department=t.correct_department, confidence=0.9) for t in tickets2]
+          wrong2 = [Action(action_type=ActionTypeEnum.ROUTE, department=DepartmentEnum.GENERAL, confidence=0.9) for _ in tickets2]
+          s3 = grader2.grade_episode(correct2, tickets2, 10, 30)
+          s4 = grader2.grade_episode(wrong2, tickets2, 10, 30)
+          assert s3 != s4, 'EfficiencyGrader returns constant scores!'
+          print(f'Grader scores: correct={s1:.3f}/{s3:.3f} wrong={s2:.3f}/{s4:.3f} - PASS')
+          "
+
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t openenv-ticket-triage:test .
+
+      - name: Test Docker health endpoint
+        run: |
+          docker run -d --name test-container -p 7860:7860 openenv-ticket-triage:test
+          sleep 15
+          curl -f http://localhost:7860/health || (docker logs test-container && exit 1)
+          docker stop test-container
+
+  baseline-dry-run:
+    name: Baseline Script Dry Run
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run baseline (heuristic mode, no API key)
+        run: |
+          python -c "
+          import sys, os
+          sys.path.insert(0, '.')
+          from src.environment import TicketTriageEnv
+          from baseline.agent import GPT4Agent
+
+          # Test without API key (uses heuristic fallback)
+          agent = GPT4Agent(seed=42)
+          for task_type in ['classification', 'priority_classification', 'efficiency_triage']:
+              env = TicketTriageEnv(task_type=task_type, seed=42)
+              obs = env.reset()
+              agent.reset()
+              done = False
+              truncated = False
+              steps = 0
+              while not done and not truncated and steps < 20:
+                  action = agent._heuristic_fallback(obs)
+                  obs, reward, done, truncated, info = env.step(action)
+                  steps += 1
+              score = info.get('episode_score', 0.0)
+              print(f'{task_type}: steps={steps}, score={score:.4f}')
+              assert 0.0 <= score <= 1.0, f'Score out of range for {task_type}: {score}'
+          print('Baseline dry run PASSED')
+          "

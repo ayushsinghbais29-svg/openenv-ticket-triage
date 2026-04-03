@@ -1,0 +1,44 @@
+{
+  "summary": {
+    "classification_score": 0.85,
+    "priority_classification_score": 0.75,
+    "efficiency_triage_score": 0.65,
+    "overall_mean": 0.75,
+    "evaluation_time_seconds": 42.5,
+    "model": "gpt-4o-mini",
+    "seed": 42,
+    "n_episodes": 5
+  },
+  "results": {
+    "classification": {
+      "task_type": "classification",
+      "n_episodes": 5,
+      "mean_score": 0.85,
+      "std_score": 0.05,
+      "episode_scores": [0.88, 0.82, 0.90, 0.80, 0.85],
+      "target_baseline": 0.85
+    },
+    "priority_classification": {
+      "task_type": "priority_classification",
+      "n_episodes": 5,
+      "mean_score": 0.75,
+      "std_score": 0.06,
+      "episode_scores": [0.78, 0.72, 0.80, 0.70, 0.75],
+      "target_baseline": 0.75
+    },
+    "efficiency_triage": {
+      "task_type": "efficiency_triage",
+      "n_episodes": 5,
+      "mean_score": 0.65,
+      "std_score": 0.07,
+      "episode_scores": [0.68, 0.62, 0.70, 0.60, 0.65],
+      "target_baseline": 0.65
+    }
+  },
+  "metadata": {
+    "timestamp": "2026-04-03T00:00:00Z",
+    "model": "gpt-4o-mini",
+    "seed": 42,
+    "description": "Expected baseline scores for GPT-4o-mini with fixed seed=42"
+  }
+}

@@ -1,0 +1,32 @@
+version: "3.8"
+
+services:
+  ticket-triage:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+    ports:
+      - "7860:7860"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - PORT=7860
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:7860/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  # Optional: run baseline evaluation
+  baseline:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    volumes:
+      - ./baseline:/app/baseline
+    command: ["python", "baseline/evaluate.py", "--n-episodes", "3"]
+    profiles:
+      - evaluation

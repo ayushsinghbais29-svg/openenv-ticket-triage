@@ -257,8 +257,13 @@ _PRIORITY_REASONING = {
 }
 
 
-def _mock_ai_suggestion(obs: Observation, task_type: TaskTypeEnum) -> Tuple[str, str, str]:
-    """Generate a plausible AI suggestion based on observation keywords."""
+def _mock_ai_suggestion(obs: Observation, task_type: TaskTypeEnum) -> Tuple[str, str, str, str]:
+    """
+    Generate a plausible AI suggestion based on observation keywords.
+
+    Returns:
+        Tuple of (department, priority, reasoning, confidence_str).
+    """
     subject = (obs.subject + " " + obs.description).lower()
 
     # Determine most likely department

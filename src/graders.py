@@ -139,14 +139,12 @@ class PriorityClassificationGrader:
         # Combined score: 0.5 department + 0.5 priority
         combined = 0.5 * dept_score + 0.5 * priority_score
 
-        # Apply tier weight modulation
+        # Apply tier weight modulation and cap at 1.0
         tier = CustomerTierEnum(observation.customer_tier)
         tier_weight = TIER_WEIGHTS.get(tier, 1.0)
-        # Normalize so tier_weight doesn't exceed 1.0
-        modulated = combined * (1.0 if tier_weight == 1.0 else min(1.0, combined * (tier_weight / 1.0)))
+        modulated = min(1.0, combined * tier_weight)
 
-        # Ensure score remains in [0, 1]
-        return min(1.0, max(0.0, modulated))
+        return max(0.0, modulated)
 
 
 # ---------------------------------------------------------------------------

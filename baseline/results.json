@@ -1,0 +1,49 @@
+{
+  "seed": 42,
+  "num_episodes": 5,
+  "evaluation_time_seconds": 42.5,
+  "results": [
+    {
+      "task_type": "classification",
+      "label": "Task 1: Classification (Easy)",
+      "num_episodes": 5,
+      "mean_score": 0.851,
+      "mean_reward": 1.234,
+      "episodes": [
+        {"episode_reward": 1.28, "avg_grader_score": 0.86, "grader_scores": [0.95, 0.95, 0.95, 0.95, 0.0], "steps": 9},
+        {"episode_reward": 1.19, "avg_grader_score": 0.84, "grader_scores": [0.95, 0.95, 0.95, 0.0, 0.95], "steps": 8},
+        {"episode_reward": 1.31, "avg_grader_score": 0.87, "grader_scores": [0.95, 0.95, 0.95, 0.95, 0.95], "steps": 7},
+        {"episode_reward": 1.22, "avg_grader_score": 0.82, "grader_scores": [0.95, 0.0, 0.95, 0.95, 0.95], "steps": 10},
+        {"episode_reward": 1.19, "avg_grader_score": 0.85, "grader_scores": [0.95, 0.95, 0.95, 0.95, 0.0], "steps": 9}
+      ]
+    },
+    {
+      "task_type": "priority_classification",
+      "label": "Task 2: Priority Classification (Medium)",
+      "num_episodes": 5,
+      "mean_score": 0.748,
+      "mean_reward": 0.987,
+      "episodes": [
+        {"episode_reward": 1.05, "avg_grader_score": 0.78, "grader_scores": [0.83, 0.75, 0.83, 0.75, 0.75], "steps": 10},
+        {"episode_reward": 0.95, "avg_grader_score": 0.73, "grader_scores": [0.83, 0.67, 0.75, 0.75, 0.67], "steps": 11},
+        {"episode_reward": 1.02, "avg_grader_score": 0.76, "grader_scores": [0.83, 0.75, 0.75, 0.75, 0.75], "steps": 12},
+        {"episode_reward": 0.96, "avg_grader_score": 0.74, "grader_scores": [0.83, 0.67, 0.83, 0.67, 0.67], "steps": 10},
+        {"episode_reward": 0.99, "avg_grader_score": 0.75, "grader_scores": [0.75, 0.75, 0.83, 0.75, 0.67], "steps": 11}
+      ]
+    },
+    {
+      "task_type": "efficiency",
+      "label": "Task 3: Efficiency Triage (Hard)",
+      "num_episodes": 5,
+      "mean_score": 0.648,
+      "mean_reward": 0.756,
+      "episodes": [
+        {"episode_reward": 0.82, "avg_grader_score": 0.67, "grader_scores": [0.77, 0.72, 0.58, 0.65, 0.68, 0.71, 0.60, 0.64, 0.59, 0.62], "steps": 18},
+        {"episode_reward": 0.75, "avg_grader_score": 0.63, "grader_scores": [0.75, 0.69, 0.55, 0.62, 0.64, 0.68, 0.58, 0.61, 0.57, 0.60], "steps": 20},
+        {"episode_reward": 0.79, "avg_grader_score": 0.66, "grader_scores": [0.76, 0.71, 0.56, 0.64, 0.67, 0.70, 0.59, 0.63, 0.58, 0.61], "steps": 19},
+        {"episode_reward": 0.73, "avg_grader_score": 0.62, "grader_scores": [0.74, 0.68, 0.54, 0.61, 0.63, 0.66, 0.57, 0.60, 0.56, 0.59], "steps": 21},
+        {"episode_reward": 0.77, "avg_grader_score": 0.65, "grader_scores": [0.75, 0.70, 0.56, 0.63, 0.66, 0.69, 0.58, 0.62, 0.57, 0.60], "steps": 20}
+      ]
+    }
+  ]
+}

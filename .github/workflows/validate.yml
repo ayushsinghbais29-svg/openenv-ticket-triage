@@ -1,0 +1,81 @@
+name: OpenEnv Validate
+
+on:
+  push:
+    branches: ["main", "copilot/**"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  validate:
+    name: Validate Environment & Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run unit tests
+        run: |
+          python -m pytest tests/ -v --tb=short
+
+      - name: Validate OpenEnv spec
+        run: |
+          python -c "
+          import yaml
+          with open('openenv.yaml') as f:
+              spec = yaml.safe_load(f)
+          assert 'openenv' in spec, 'Missing openenv key in spec'
+          print('openenv.yaml is valid YAML')
+          "
+        env:
+          PYTHONPATH: .
+
+      - name: Validate src package imports
+        run: |
+          python -c "
+          from src.models import Observation, Action, Reward, RewardComponents, EnvironmentState
+          from src.models import DepartmentEnum, PriorityEnum, ActionTypeEnum, TaskTypeEnum, CustomerTierEnum
+          from src.environment import TicketTriageEnv
+          from src.graders import ClassificationGrader, PriorityClassificationGrader, EfficiencyGrader
+          from src.reward_functions import RewardCalculator, RewardModulator
+          from src.tasks import TicketGenerator
+          print('All src imports successful')
+          "
+        env:
+          PYTHONPATH: .
+
+      - name: Validate environment API
+        run: |
+          python -c "
+          from src.environment import TicketTriageEnv
+          from src.models import Action, ActionTypeEnum, DepartmentEnum, TaskTypeEnum
+
+          for task in ['classification', 'priority_classification', 'efficiency']:
+              env = TicketTriageEnv(task_type=task, seed=42)
+              obs = env.reset()
+              assert obs is not None, f'reset() returned None for {task}'
+              action = Action(
+                  action_type=ActionTypeEnum.CLASSIFY,
+                  department=DepartmentEnum.BILLING,
+              )
+              next_obs, reward, done, info = env.step(action)
+              assert reward is not None, f'reward is None for {task}'
+              assert 0.0 <= reward.grader_score <= 1.0, f'grader score out of range for {task}'
+              state = env.state()
+              assert state is not None, f'state() returned None for {task}'
+              print(f'Task {task}: PASS (grader_score={reward.grader_score:.3f})')
+          "
+        env:
+          PYTHONPATH: .

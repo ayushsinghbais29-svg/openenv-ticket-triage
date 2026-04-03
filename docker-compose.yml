@@ -1,0 +1,31 @@
+version: "3.9"
+
+services:
+  # ============================================================
+  # Gradio Dashboard (Primary UI)
+  # ============================================================
+  gradio-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: openenv-ticket-triage-ui
+    ports:
+      - "7860:7860"
+    environment:
+      - PORT=7860
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./src:/app/src:ro
+      - ./deployment:/app/deployment:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7860/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+networks:
+  default:
+    name: openenv-network

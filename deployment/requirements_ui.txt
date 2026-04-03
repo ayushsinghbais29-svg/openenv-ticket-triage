@@ -1,0 +1,18 @@
+# UI Dependencies for OpenEnv Ticket Triage Gradio Dashboard
+# Meta PyTorch OpenEnv Hackathon 2026
+
+# Gradio for the dashboard UI
+gradio>=4.0.0,<5.0.0
+
+# Plotly for real-time charts
+plotly>=5.15.0
+
+# Pandas for data tables
+pandas>=2.0.0
+
+# Core environment dependencies
+pydantic>=1.10.0,<3.0.0
+python-dotenv>=1.0.0
+
+# Optional: OpenAI for baseline agent
+openai>=1.0.0

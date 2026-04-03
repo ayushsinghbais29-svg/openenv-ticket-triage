@@ -1,0 +1,18 @@
+openenv:
+  task:
+    name: "Ticket Triage"
+    description: "A task that focuses on triaging tickets within the OpenEnv framework."
+    motivation: "To streamline the process of handling support and enhancement requests."
+    action_space: ["assign_ticket", "close_ticket", "add_comment"]
+    observation_space: ["ticket_status", "ticket_priority", "assignee"]
+    observations:
+      - {key: "ticket_status", description: "The current status of the ticket"}
+      - {key: "ticket_priority", description: "The priority level assigned to the ticket"}
+      - {key: "assignee", description: "The individual assigned to the ticket"}
+    metrics:
+      - name: "Time to Triage"
+        description: "Average time taken to triage tickets"
+  baseline:
+    results:
+      - {metric: "Time to Triage", value: "48 hours"}
+

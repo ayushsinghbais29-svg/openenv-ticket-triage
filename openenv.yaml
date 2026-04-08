@@ -1,18 +1,155 @@
 openenv:
-  task:
-    name: "Ticket Triage"
-    description: "A task that focuses on triaging tickets within the OpenEnv framework."
-    motivation: "To streamline the process of handling support and enhancement requests."
-    action_space: ["assign_ticket", "close_ticket", "add_comment"]
-    observation_space: ["ticket_status", "ticket_priority", "assignee"]
-    observations:
-      - {key: "ticket_status", description: "The current status of the ticket"}
-      - {key: "ticket_priority", description: "The priority level assigned to the ticket"}
-      - {key: "assignee", description: "The individual assigned to the ticket"}
-    metrics:
-      - name: "Time to Triage"
-        description: "Average time taken to triage tickets"
+  version: "1.0"
+  name: "openenv-ticket-triage"
+  description: >
+    OpenEnv-compliant ticket triage environment. An LLM agent classifies,
+    assigns, and resolves customer support tickets across three graded tasks.
+
+  environment:
+    variables:
+      - name: API_BASE_URL
+        description: "Base URL for the OpenAI-compatible LLM endpoint."
+        required: true
+        default: "https://api.openai.com/v1"
+      - name: MODEL_NAME
+        description: "Model identifier used for inference (e.g. gpt-3.5-turbo)."
+        required: true
+        default: "gpt-3.5-turbo"
+      - name: HF_TOKEN
+        description: "Hugging Face / OpenAI API key."
+        required: true
+
+  observation_space:
+    type: object
+    properties:
+      ticket_id:
+        type: string
+        description: "Unique identifier for the support ticket."
+      ticket_status:
+        type: string
+        enum: ["open", "assigned", "in_progress", "closed"]
+        description: "Current status of the ticket."
+      ticket_priority:
+        type: string
+        enum: ["low", "medium", "high", "critical"]
+        description: "Priority level of the ticket."
+      department:
+        type: string
+        enum: ["Billing", "Technical", "General", "Premium Support"]
+        description: "Department responsible for the ticket."
+      assignee:
+        type: string
+        nullable: true
+        description: "Team or individual assigned to the ticket."
+      sentiment:
+        type: string
+        enum: ["positive", "neutral", "negative"]
+        description: "Customer sentiment inferred from the ticket."
+      task_type:
+        type: string
+        description: "Active task type (classification / assignment / resolution)."
+      step_count:
+        type: integer
+        description: "Number of steps taken in the current episode."
+
+  action_space:
+    type: object
+    properties:
+      action_type:
+        type: string
+        enum:
+          - "read"
+          - "analyze"
+          - "classify_ticket"
+          - "assign_ticket"
+          - "resolve_ticket"
+          - "close_ticket"
+          - "add_comment"
+        description: "Type of action the agent performs."
+      department:
+        type: string
+        nullable: true
+        description: "Target department for routing."
+      priority:
+        type: string
+        nullable: true
+        description: "Priority classification chosen by the agent."
+      assignee:
+        type: string
+        nullable: true
+        description: "Team or individual to assign the ticket to."
+      confidence:
+        type: number
+        minimum: 0.0
+        maximum: 1.0
+        description: "Agent confidence score for the chosen action."
+
+  tasks:
+    - name: "ticket_classification"
+      description: "Classify support tickets into the correct category using an LLM."
+      grader:
+        type: accuracy
+        metric: classification_accuracy
+        score_range: [0.0, 1.0]
+        description: >
+          Fraction of tickets correctly classified into Billing, Technical,
+          General, or Premium Support.
+      reward:
+        range: [0.0, 1.0]
+        description: "1.0 per correct classification, 0.0 otherwise."
+
+    - name: "ticket_assignment"
+      description: "Route each ticket to the correct department team."
+      grader:
+        type: correctness
+        metric: assignment_accuracy
+        score_range: [0.0, 1.0]
+        description: >
+          Fraction of tickets routed to the correct team
+          (billing-team / tech-support / general-support / premium-support).
+      reward:
+        range: [0.0, 1.0]
+        description: "1.0 per correct routing, 0.0 otherwise."
+
+    - name: "ticket_resolution"
+      description: "Generate quality resolutions for support tickets."
+      grader:
+        type: quality
+        metric: resolution_quality
+        score_range: [0.0, 1.0]
+        description: >
+          Resolution quality score based on length, actionable content, and
+          relevance to the ticket subject.
+      reward:
+        range: [0.0, 1.0]
+        description: "Continuous quality score from 0.0 to 1.0."
+
+  metrics:
+    - name: classification_accuracy
+      description: "Accuracy of ticket category classification."
+      range: [0.0, 1.0]
+    - name: assignment_accuracy
+      description: "Accuracy of ticket department routing."
+      range: [0.0, 1.0]
+    - name: resolution_quality
+      description: "Mean quality score for generated ticket resolutions."
+      range: [0.0, 1.0]
+    - name: average_score
+      description: "Arithmetic mean score across all three tasks."
+      range: [0.0, 1.0]
+
   baseline:
+    model: "gpt-3.5-turbo"
     results:
-      - {metric: "Time to Triage", value: "48 hours"}
+      - task: "ticket_classification"
+        metric: classification_accuracy
+        value: 0.80
+      - task: "ticket_assignment"
+        metric: assignment_accuracy
+        value: 0.75
+      - task: "ticket_resolution"
+        metric: resolution_quality
+        value: 0.70
+      - metric: average_score
+        value: 0.75
 

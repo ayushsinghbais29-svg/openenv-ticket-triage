@@ -1,7 +1,10 @@
+import copy
 import random
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import uvicorn
+
+REWARD_PRECISION = 4
 
 app = FastAPI(title="OpenEnv Ticket Triage API")
 
@@ -59,7 +62,7 @@ _state: dict = {}
 
 
 def _initial_state() -> dict:
-    ticket = random.choice(TICKETS).copy()
+    ticket = copy.deepcopy(random.choice(TICKETS))
     return {
         "ticket": ticket,
         "step_count": 0,
@@ -101,7 +104,7 @@ def step(action: str, assignee: str | None = None, comment: str | None = None):
     global _state
 
     if not _state:
-        _state = _initial_state()
+        raise HTTPException(status_code=400, detail="Environment not initialized. Call POST /openenv/reset first.")
 
     ticket = _state["ticket"]
     reward = 0.0
@@ -131,7 +134,7 @@ def step(action: str, assignee: str | None = None, comment: str | None = None):
 
     _state["step_count"] += 1
     _state["done"] = done
-    _state["total_reward"] = round(_state["total_reward"] + reward, 4)
+    _state["total_reward"] = round(_state["total_reward"] + reward, REWARD_PRECISION)
 
     return {
         "observation": {

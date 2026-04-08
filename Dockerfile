@@ -8,6 +8,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY inference.py .
 COPY openenv.yaml .
 
-EXPOSE 8000
+# Default environment variables (override at runtime)
+ENV API_BASE_URL=https://api.openai.com/v1
+ENV MODEL_NAME=gpt-3.5-turbo
+ENV HF_TOKEN=""
 
-CMD ["uvicorn", "inference:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "inference.py"]

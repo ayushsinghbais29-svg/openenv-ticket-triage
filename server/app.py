@@ -70,14 +70,12 @@ def grader_resolution(steps: int, optimal: int = 3) -> float:
         return 1.0
     return max(0.0, 1.0 - (steps - optimal) * 0.1)
 
-@app.post("/openenv/reset", response_model=ResetResponse)
-async def reset(request: ResetRequest = None):
+@app.post("/openenv/reset")
+async def reset():
     global current_env
     
-    task_name = request.task if request else "task_1_classification"
-    
     current_env = {
-        'task': task_name,
+        'task': 'task_1_classification',
         'tickets': TICKETS.copy(),
         'current_idx': 0,
         'step': 0,
@@ -86,19 +84,19 @@ async def reset(request: ResetRequest = None):
     }
     
     ticket = current_env['tickets'][0]
-    logger.info(f"[RESET] Environment initialized with task: {task_name}")
+    logger.info(f"[RESET] Environment initialized")
     
-    return ResetResponse(
-        observation={
+    return {
+        'observation': {
             'ticket_id': ticket['id'],
             'category': ticket['category'],
             'priority': ticket['priority'],
             'sentiment': ticket['sentiment'],
             'status': 'open'
         },
-        reward=0.0,
-        done=False
-    )
+        'reward': 0.0,
+        'done': False
+    }
 
 @app.post("/openenv/step", response_model=StepResponse)
 async def step(request: StepRequest):

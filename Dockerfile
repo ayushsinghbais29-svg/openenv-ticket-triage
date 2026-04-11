@@ -18,8 +18,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY inference.py .
 COPY openenv.yaml .
 
-# Expose port 7860
-EXPOSE 7860
-
 # Run inference.py
-CMD ["python", "inference.py"]
+ENTRYPOINT ["python", "inference.py"]

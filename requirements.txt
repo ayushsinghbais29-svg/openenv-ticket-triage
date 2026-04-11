@@ -1,5 +1,1 @@
-﻿gradio
-fastapi
-starlette
-jinja2
-uvicorn
+﻿openai>=1.0.0

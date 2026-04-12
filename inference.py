@@ -1,3 +1,12 @@
+import signal
+
+def handle_reset(signum, frame):
+    """Handle OpenEnv reset signal"""
+    print("[DEBUG] Reset signal received", file=sys.stderr, flush=True)
+    sys.exit(0)
+
+signal.signal(signal.SIGTERM, handle_reset)
+signal.signal(signal.SIGINT, handle_reset)
 """
 OpenEnv Ticket Triage Inference Script
 Emits [START], [STEP], [END] logs as required by OpenEnv
@@ -120,7 +129,8 @@ async def run_inference() -> None:
         print(f"[DEBUG] Error during execution: {e}", file=sys.stderr, flush=True)
     
     finally:
-        log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
+    log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
+    sys.exit(0 if success else 1)
 
 
 if __name__ == "__main__":
